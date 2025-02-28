@@ -15,7 +15,7 @@ def data_loader(args):
     """
     if args.data == "Swiss_Roll":
         print("Using Swiss_Roll")
-        X, phi = data_swiss_roll()
+        X, phi = data_swiss_roll(args)
     elif args.data == "toy_data":
         print("Using toy_data")
         X, phi = toy_data()
@@ -28,19 +28,9 @@ def data_loader(args):
     return X, phi
 
 
-def data_swiss_roll():
+def data_swiss_roll(args):
     """
-    length_phi = 15  # length of swiss roll in angular direction
-    length_Z = 5  # length of swiss roll in z direction
-    sigma = 0.1  # noise strength
-    m = 1000  # number of samples
-    X = np.zeros((3, m))
-    phi = length_phi * np.random.rand(m)
-    xi = np.random.rand(m)
-    X[0] = 1. / 6 * (phi + sigma * xi) * np.sin(phi)
-    X[1] = 1. / 6 * (phi + sigma * xi) * np.cos(phi)
-    X[2] = length_Z * np.random.rand(m)
-    np.savez('Swiss_Roll.npz', X = X, phi = phi)
+    Loading Swiss Roll data
     """
     data = np.load(osp.join(args.path, 'Swiss_Roll.npz'))
     X = data['X']
@@ -58,11 +48,11 @@ def data_MNIST(args):
 
 def toy_data():
     m = 100
-    m = 2 * int(m/2)
+    m = 2 * int(m / 2)
     X = np.zeros((3, m))
     X[0] = np.linspace(-8.0, 10.0, num=m)
     X[1] = np.linspace(-1.0, 3.0, num=m)
-    X[2] = np.concatenate((np.linspace(1.0, 2.0, num=int(m/2)), np.linspace(2.0, 1.0, num=int(m/2))), 0)
+    X[2] = np.concatenate((np.linspace(1.0, 2.0, num=int(m / 2)), np.linspace(2.0, 1.0, num=int(m / 2))), 0)
     return X, X[0]
 
 
@@ -87,9 +77,10 @@ def display_DR(args, new_X, X, phi, mu, W):
             plt.title('Projected data')
             plt.axis('tight')
             plt.xticks([]), plt.yticks([])
+
             if args.method == "PCA" and args.save:
-                plt.savefig(args.data + '_' + str(args.out_dim) + '.png', format='png')
-                np.savez('Results_' + args.data + '_' + str(args.out_dim) + '.npz', mu = mu, W = W)
+                plt.savefig(f'{args.data}_{args.out_dim}_2.png', format='png')
+                np.savez(f'Results_{args.data}_{args.out_dim}_2.npz', mu=mu, W=W)
             plt.show()
             plt.close(fig)
         else:
@@ -105,7 +96,116 @@ def display_DR(args, new_X, X, phi, mu, W):
                                      gridspec_kw=dict(hspace=0.1, wspace=0.1))
             for i, ax in enumerate(axes.flat):
                 ax.imshow(to_show[:, i].reshape(28, 28), cmap='bone')
-            print("The first image is the mean image. the second to the last and the last are an"
+            print("The first image is the mean image. The second to the last and the last are an "
+                  "original digit image and its reconstruction. Images in the middle are PCA components "
+                  "(columns of W, after reshaped).")
+            if args.method == "PCA" and args.save:
+                plt.savefig(f'{args.data}_{args.out_dim}_2.png', format='png')
+                np.savez(f'Results_{args.data}_{args.out_dim}_2.npz', mu=mu, W=W)
+            plt.show()
+            plt.close(fig)
+        else:
+            print("No display for LE on MNIST!")
+    else:
+        print("new_X is: ", new_X)
+        if args.method == "PCA" and args.save:
+            np.savez(f'Results_{args.data}_{args.out_dim}_2.npz', mu=mu, W=W)
+"""
+def display_DR(args, new_X, X, phi, mu, W):
+    
+    # Check if the data is either Swiss_Roll or toy_data
+    if args.data == "Swiss_Roll" or args.data == "toy_data":
+        
+        if new_X.shape[0] == 3:  # 3D case
+            fig = plt.figure()
+
+            # Plot Original Data (3D)
+            ax1 = fig.add_subplot(121, projection='3d')
+            ax1.scatter(X[0], X[1], X[2], c=phi, cmap=plt.cm.RdYlBu, marker='^')  # Triangle for original
+            ax1.set_title("Original Data")
+            ax1.set_xlabel('X')
+            ax1.set_ylabel('Y')
+            ax1.set_zlabel('Z')
+
+            # Plot Projected Data (3D)
+            ax2 = fig.add_subplot(122, projection='3d')
+            ax2.scatter(new_X[0], new_X[1], new_X[2], c=phi, cmap=plt.cm.Spectral, marker='o')  # Circle for projected
+            ax2.set_title('Projected Data')
+            ax2.set_xlabel('X')
+            ax2.set_ylabel('Y')
+            ax2.set_zlabel('Z')
+
+            plt.tight_layout()
+
+        elif new_X.shape[0] == 2:  # 2D case
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+
+            # Plot Original Data (2D)
+            ax1.scatter(X[0], X[1], c=phi, cmap=plt.cm.RdYlBu, marker='^')  # Triangle for original
+            ax1.set_title("Original Data")
+            ax1.set_xlabel('X')
+            ax1.set_ylabel('Y')
+
+            # Plot Projected Data (2D)
+            ax2.scatter(new_X[0], new_X[1], c=phi, cmap=plt.cm.Spectral, marker='o')  # Circle for projected
+            ax2.set_title('Projected Data')
+            ax2.set_xlabel('X')
+            ax2.set_ylabel('Y')
+
+            plt.tight_layout()
+
+        else:
+            print(f"Unexpected output dimensionality: {new_X.shape[0]}")
+
+        # Save results if needed
+        if args.method == "PCA" and args.save:
+            np.savez(f'Results_{args.data}_{args.out_dim}.npz', mu=mu, W=W)
+
+        # Show the plot
+        plt.show()
+        plt.close(fig)
+    
+    else:
+        # Print new_X for debugging purposes (optional)
+        print("new_X is: ", new_X)
+        
+        # Save results if needed for PCA
+        if args.method == "PCA" and args.save:
+            np.savez(f'Results_{args.data}_{args.out_dim}.npz', mu=mu, W=W)
+"""
+
+"""
+def display_DR(args, new_X, X, phi, mu, W):
+    if args.data == "Swiss_Roll" or args.data == "toy_data":
+        if new_X.shape[0] != 1:
+            fig = plt.figure()
+            ax = fig.add_subplot(211, projection='3d')
+            ax.scatter(new_X[0, :], new_X[1, :], c=phi, cmap=plt.cm.Spectral)
+            ax.set_title("Original data")
+            ax = fig.add_subplot(212, projection='3d')
+            ax.scatter(new_X[0], new_X[1], c=phi, cmap=plt.cm.Spectral)
+            plt.title('Projected data')
+            plt.axis('tight')
+            plt.xticks([]), plt.yticks([])
+            if args.method == "PCA" and args.save:
+                plt.savefig(args.data + '_' + str(args.out_dim) + '.png', format='png')
+                np.savez('Results_' + args.data + '_' + str(args.out_dim) + '.npz', mu=mu, W=W)
+            plt.show()
+            plt.close(fig)
+        else:
+            print("The output dimensionality has to be larger than 1 for a scatter plot!")
+    elif args.data == "MNIST":
+        if args.method == "PCA":
+            xx = X[:, 0].reshape(-1, 1)
+            new_xx = new_X[:, 0].reshape(-1, 1)
+            new_xx = np.matmul(W, new_xx) + mu
+            to_show = np.concatenate((mu, W[:, :min(5, args.out_dim)], xx, new_xx), 1)
+            fig, axes = plt.subplots(1, min(5, args.out_dim) + 1 + 1 + 1, figsize=(28, 28),
+                                     subplot_kw={'xticks': [], 'yticks': []},
+                                     gridspec_kw=dict(hspace=0.1, wspace=0.1))
+            for i, ax in enumerate(axes.flat):
+                ax.imshow(to_show[:, i].reshape(28, 28), cmap='bone')
+            print("The first image is the mean image. The second to last and the last are an"
                   " original digit image and its reconstruction. Images in the middle are PCA components"
                   " (columns of W, after reshaped).")
             if args.method == "PCA" and args.save:
@@ -119,7 +219,7 @@ def display_DR(args, new_X, X, phi, mu, W):
         print("new_X is: ", new_X)
         if args.method == "PCA" and args.save:
             np.savez('Results_' + args.data + '_' + str(args.out_dim) + '.npz', mu=mu, W=W)
-
+"""
 
 ## auto_checker
 def auto_check(mu, W):
@@ -213,23 +313,10 @@ def PCA(X, out_dim):
     D = X.shape[0] # feature dimension
     N = X.shape[1] # number of data instances
 
-    ### Your job 1 starts here ###
     mu = np.mean(X, axis=1, keepdims=True)
     X_centered = X - mu
     Sigma = np.matmul(X_centered, X_centered.transpose()) / N
 
-    #You _MAY_ use numpy's mean, sum, matmul, etc functions
-    #You _MAY NOT_ use numpy's cov() function (just this once, try implementing it yourself)
-    # (Even w/o cov(), this can still be implemented in one line, if you choose.)
-    # Note, though, you may check your work against cov() (be careful of the bias term!)
-
-    ### Your job 1 ends here ###
-
-    """
-        np.linalg.eigh (or np.linalg.eig) for eigendecomposition.
-        V: eigenvalues, W: eigenvectors
-        This function has already L2 normalized each eigenvector.
-    """
     V, W = np.linalg.eigh(Sigma)
     V = V.real  # the output may be complex value: do .real to keep the real part
     W = W.real  # the output may be complex value: do .real to keep the real part
@@ -251,7 +338,7 @@ def main(args):
         args.save = False
 
     ## Loading data
-    X, phi = data_loader(args) # X: the D-by-N data matrix (numpy array); phi: metadata of X (you can ignore it)
+    X, phi = data_loader(args) # X: the D-by-N data matrix (numpy array); phi: metadata of X
 
     ## Setup
     out_dim = int(args.out_dim) # output dimensionality
@@ -260,53 +347,38 @@ def main(args):
     print("Data size: ", X.shape)
 
     # Running DR
-    # Running PCA
     if args.method == "PCA":
         print("Method is PCA")
-        mu, W = PCA(np.copy(X), out_dim) # return mean and the projection matrix (numpy array)
+        mu, W = PCA(np.copy(X), out_dim)
         if args.data != "MNIST":
             print("The mean vector is: ", mu)
             print("The projection matrix is: ", W)
 
-        ### Your job 2 starts here ###
-        """
-        Create a out_dim-by-N matrix (numpy array) named "new_X" to store the data after PCA.
-        In other words, you are to apply mu and W to X
-        1. new_X has size out_dim-by-N
-        2. each column of new_X corresponds to each column of X
-        3. Useful tool: check the "np.matmul" function and the builtin "transpose()" function of a numpy array 
-        4. Hint: Just one line of code
-        """
         new_X = np.matmul(W.transpose(), (X - mu))
-        new_X = new_X.transpose()
-
-        ### Your job 2 ends here ###
 
     elif args.method == "LE":
-        print("Method is LE")
+        print("Method is Laplacian Eigenmap")
         new_X = LE(np.copy(X), out_dim)
-        mu = 0
-        W = 0
-
+        mu = None
+        W = None
     else:
-        print("Wrong method!")
+        print("Unknown method")
 
-    # Display the results
-    if args.display:
-        display_DR(args, new_X, X, phi, mu, W)
-
+    # Displaying results
+    display_DR(args, new_X, X, phi, mu, W)
     if args.auto_check:
         auto_check(mu, W)
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Running dimensionality reduction (DR)")
-    parser.add_argument('--path', default="data", type=str)
-    parser.add_argument('--data', default="Swiss_Roll", type=str)
-    parser.add_argument('--method', default="PCA", type=str)
-    parser.add_argument('--out_dim', default=2, type=int)
-    parser.add_argument('--display', action='store_true', default=False)
-    parser.add_argument('--save', action='store_true', default=False)
-    parser.add_argument('--auto_check', action='store_true', default=False)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Dimensionality Reduction")
+    parser.add_argument('--data', type=str, default="Swiss_Roll")
+    parser.add_argument('--method', type=str, default="PCA")
+    parser.add_argument('--out_dim', type=int, default=2)
+    parser.add_argument('--save', action='store_true')
+    parser.add_argument('--display', action='store_true')
+    parser.add_argument('--auto_check', action='store_true')
+    parser.add_argument('--path', type=str, default="data")
     args = parser.parse_args()
+
     main(args)
