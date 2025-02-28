@@ -214,8 +214,9 @@ def PCA(X, out_dim):
     N = X.shape[1] # number of data instances
 
     ### Your job 1 starts here ###
-    mu = ...
-    Sigma = ...
+    mu = np.mean(X, axis=1, keepdims=True)
+    X_centered = X - mu
+    Sigma = np.matmul(X_centered, X_centered.transpose()) / N
 
     #You _MAY_ use numpy's mean, sum, matmul, etc functions
     #You _MAY NOT_ use numpy's cov() function (just this once, try implementing it yourself)
@@ -276,7 +277,8 @@ def main(args):
         3. Useful tool: check the "np.matmul" function and the builtin "transpose()" function of a numpy array 
         4. Hint: Just one line of code
         """
-        new_X = ...
+        new_X = np.matmul(W.transpose(), (X - mu))
+        new_X = new_X.transpose()
 
         ### Your job 2 ends here ###
 
